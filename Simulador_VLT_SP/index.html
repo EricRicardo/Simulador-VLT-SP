@@ -3,1258 +3,721 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bonde São Paulo — Simulador Econômico, Operacional e de Demanda (VLE vs. VLT vs. BRT)</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-  <!-- Leaflet.js CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
-  <!-- Chart.js -->
+  <title>Simulador Econômico e Operacional — Bonde São Paulo (VLE vs. VLT vs. BRT)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
   <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-alt: #273549;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --vlt: #6366f1;
+      --vle: #f59e0b;
+      --brt: #10b981;
+      --danger: #ef4444;
+      --ok: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .conclusion-list { padding-left: 22px; }
+    .conclusion-list li { margin: 12px 0; }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #f8fafc;
-      color: #0f172a;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 20px;
     }
-
-    /* Estilização customizada dos sliders */
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 8px;
-      background: #e2e8f0;
-      border-radius: 9999px;
-      outline: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #1d4ed8;
-      cursor: pointer;
-      border: 3px solid #ffffff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-      transition: transform 0.15s ease, background-color 0.15s ease;
-    }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.1);
-      background: #1e40af;
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #1d4ed8;
-      cursor: pointer;
-      border: 3px solid #ffffff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-    }
-
-    /* Ajustes do Mapa Leaflet */
-    #map {
-      height: 460px;
-      width: 100%;
-      border-radius: 0.75rem;
-      z-index: 1;
-    }
-    .leaflet-popup-content-wrapper {
-      border-radius: 0.75rem;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
-    }
-    .custom-station-icon {
+    .container { max-width: 1400px; margin: 0 auto; }
+    header {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      border-radius: 9999px;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    header h1 { font-size: 1.45rem; font-weight: 700; color: #fff; }
+    header p { font-size: 0.88rem; color: var(--muted); max-width: 820px; }
+    .badge-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .control-box {
+      background: var(--panel-alt);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .control-box label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .control-box label span { color: #fff; font-weight: 700; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 11px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover { border-color: var(--accent); }
+    button.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+    button.toggle-on { background: #10b981; color: #052e16; border-color: #10b981; }
+    button.export-btn { background: #334155; color: #fff; }
+    button.export-btn:hover { background: #475569; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .kpi-title { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi-val { font-size: 1.5rem; font-weight: 700; margin: 4px 0; }
+    .kpi-sub { font-size: 0.78rem; color: var(--muted); }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .card-title { font-size: 1rem; font-weight: 700; }
+    #map { height: 420px; width: 100%; border-radius: 8px; border: 1px solid var(--border); z-index: 1; }
+    .chart-wrap { position: relative; height: 340px; width: 100%; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 8px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; background: var(--panel-alt); }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
       font-weight: 700;
-      font-size: 10px;
-      color: #ffffff;
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+    .pill-ok { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+    .pill-warn { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+    .pill-danger { background: rgba(239, 68, 68, 0.22); color: #f87171; }
+    .footnote {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
     }
   </style>
 </head>
-<body class="antialiased selection:bg-blue-100 selection:text-blue-900">
-
-  <!-- Barra Institucional Superior -->
-  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-lg tracking-tight shrink-0 shadow-inner">
-          SP
-        </div>
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">
-              Bonde São Paulo — Análise Técnico-Econômica de Mobilidade
-            </h1>
-            <span class="px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-full">
-              VLE vs. VLT vs. BRT Elétrico
-            </span>
-          </div>
-          <p class="text-xs text-slate-400">
-            Centro Histórico de São Paulo • Rede de 17,4 km (Linhas Sibipiruna e Jequitibá) • 37 Estações
-          </p>
-        </div>
-      </div>
-
-      <!-- Navegação rápida por seções -->
-      <nav class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-medium">
-        <a href="#controles" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">Simulador</a>
-        <a href="#mapa-rotas" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">Mapa &amp; Rotas</a>
-        <a href="#projecao-demanda" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">Projeção 10/15 Anos</a>
-        <a href="#comparativo-financeiro" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">CAPEX &amp; OPEX</a>
-        <a href="#capacidade-pico" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">Estresse no Pico</a>
-        <a href="#conclusoes" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 whitespace-nowrap transition">Conclusões</a>
-      </nav>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Simulador Econômico e Operacional — Bonde São Paulo (17,4 km)</h1>
+      <p>Comparativo entre <strong>VLT (Sobre Trilhos)</strong>, <strong>VLE (Bonde Digital / DRT)</strong> e <strong>BRT Elétrico Articulado</strong> com separação entre OPEX puro, Depreciação Física por vida útil e Custo Financeiro, além de acoplamento Bi-Trem no pico.</p>
+    </div>
+    <div class="badge-group">
+      <span class="badge">Rede: 17,4 km (37 Estações)</span>
+      <span class="badge">Tarifa Pública: R$ 5,30</span>
+      <button class="export-btn" onclick="exportCSV()">⬇ Exportar Cenário (CSV)</button>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-
-    <!-- SEÇÃO 1: PAINEL DE CONTROLE INTERATIVO E KPIs DINÂMICOS -->
-    <section id="controles" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-slate-100">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Painel de Parâmetros em Tempo Real</span>
-          <h2 class="text-xl font-bold text-slate-900 mt-0.5">Simulação de Demanda, Intervalo e Equilíbrio Tarifário</h2>
-          <p class="text-sm text-slate-500 mt-0.5">
-            Ajuste a demanda diária ou selecione um horizonte temporal para recalcular custos unitários, subsídio econômico e saturação operacional.
-          </p>
-        </div>
-
-        <!-- Botões de Preset Rápido -->
-        <div class="flex flex-wrap gap-2">
-          <button type="button" data-demand="75000" data-preset="conservador" class="preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
-            Conservador 2029: <span class="font-bold">75.000</span>
-          </button>
-          <button type="button" data-demand="120000" data-preset="base" class="preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-blue-600 bg-blue-600 text-white shadow-sm transition cursor-pointer">
-            Base Prefeitura 2029: <span class="font-bold">120.000</span>
-          </button>
-          <button type="button" data-demand="201389" data-preset="10anos" class="preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
-            Projeção +10 Anos (2039): <span class="font-bold">201.389</span>
-          </button>
-          <button type="button" data-demand="241143" data-preset="15anos" class="preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
-            Projeção +15 Anos (2044): <span class="font-bold">241.143</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Sliders e Toggle -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 py-5 border-b border-slate-100 items-center">
-        <!-- Slider 1: Demanda Diária -->
-        <div class="lg:col-span-5 space-y-2">
-          <div class="flex items-center justify-between">
-            <label for="demandSlider" class="text-sm font-semibold text-slate-700">
-              Demanda Diária Base (pax/dia útil)
-            </label>
-            <span id="demandBaseDisplay" class="text-base font-extrabold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
-              120.000 pax/dia
-            </span>
-          </div>
-          <input id="demandSlider" type="range" min="60000" max="300000" step="500" value="120000" class="w-full" />
-          <div class="flex justify-between text-[11px] text-slate-400 font-medium">
-            <span>60.000 (Baixa adesão)</span>
-            <span>120.000 (Meta PPP)</span>
-            <span>300.000 (Saturação)</span>
-          </div>
-        </div>
-
-        <!-- Slider 2: Headway no Pico -->
-        <div class="lg:col-span-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <label for="headwaySlider" class="text-sm font-semibold text-slate-700">
-              Headway / Intervalo no Pico
-            </label>
-            <span id="headwayDisplay" class="text-base font-extrabold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
-              6,0 min (10 viagens/h)
-            </span>
-          </div>
-          <input id="headwaySlider" type="range" min="2.5" max="8.0" step="0.5" value="6.0" class="w-full" />
-          <div class="flex justify-between text-[11px] text-slate-400 font-medium">
-            <span>2,5 min (Crítico)</span>
-            <span>4,0 min (Limite VLE)</span>
-            <span>8,0 min</span>
-          </div>
-        </div>
-
-        <!-- Toggle: Integração Tarifária Gratuita -->
-        <div class="lg:col-span-3 bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3">
-          <div>
-            <div class="text-xs font-bold text-slate-800">Integração Gratuita no Anel</div>
-            <div class="text-[11px] text-slate-500 leading-tight mt-0.5">
-              Induz <span class="font-semibold text-emerald-700">+25%</span> de demanda last-mile
-            </div>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer shrink-0">
-            <input id="freeIntegrationToggle" type="checkbox" class="sr-only peer" />
-            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-          </label>
-        </div>
-      </div>
-
-      <!-- Cards de KPIs em Tempo Real -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-5">
-        <!-- KPI 1: Demanda Efetiva & Hora-Pico -->
-        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Demanda Efetiva / Pico</div>
-          <div id="kpiEffectiveDemand" class="text-xl font-extrabold text-slate-900 mt-1">120.000 / dia</div>
-          <div class="text-xs text-slate-600 mt-1 flex items-center justify-between">
-            <span>Hora-Pico (9,5%):</span>
-            <span id="kpiPeakDemand" class="font-bold text-blue-700">11.400 pax/h</span>
-          </div>
-        </div>
-
-        <!-- KPI 2: Ocupação no Pico do VLE -->
-        <div id="kpiOccupancyCard" class="bg-slate-50 rounded-xl p-4 border border-slate-200 transition-colors">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ocupação VLE no Pico</div>
-          <div id="kpiVleOccupancy" class="text-xl font-extrabold text-emerald-700 mt-1">71,3%</div>
-          <div id="kpiVleStatus" class="text-xs font-medium text-emerald-700 mt-1">
-            Confortável (capac. 16.000 pax/h)
-          </div>
-        </div>
-
-        <!-- KPI 3: Custo Total VLE (Bonde Digital) -->
-        <div class="bg-blue-50/70 rounded-xl p-4 border border-blue-200">
-          <div class="text-xs font-semibold text-blue-800 uppercase tracking-wide">Custo Total VLE / Pax</div>
-          <div id="kpiVleTotalCost" class="text-xl font-extrabold text-blue-900 mt-1">R$ 6,62</div>
-          <div class="text-xs text-blue-700 mt-1">
-            OPEX: <span id="kpiVleOpex" class="font-bold">R$ 1,20</span> + CAPEX: <span id="kpiVleCapex" class="font-bold">R$ 5,42</span>
-          </div>
-        </div>
-
-        <!-- KPI 4: Comparativo VLT vs BRT -->
-        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">VLT vs. BRT Elétrico</div>
-          <div class="mt-1 space-y-0.5">
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-600">VLT Trilhos:</span>
-              <span id="kpiVltTotalCost" class="font-extrabold text-amber-700">R$ 9,18 / pax</span>
-            </div>
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-600">BRT Elétrico:</span>
-              <span id="kpiBrtTotalCost" class="font-extrabold text-emerald-700">R$ 2,73 / pax</span>
-            </div>
-          </div>
-          <div class="text-[11px] text-slate-400 mt-1.5">Amortização 30 anos (6% a.a.)</div>
-        </div>
-
-        <!-- KPI 5: Subsídio Implícito VLE -->
-        <div class="bg-rose-50/60 rounded-xl p-4 border border-rose-200">
-          <div class="text-xs font-semibold text-rose-800 uppercase tracking-wide">Déficit / Subsídio VLE</div>
-          <div id="kpiVleSubsidyPax" class="text-xl font-extrabold text-rose-700 mt-1">R$ 3,06 / pax</div>
-          <div class="text-xs text-rose-800 mt-1">
-            Anual: <span id="kpiVleSubsidyYear" class="font-bold">R$ 116,8 mi/ano</span>
-          </div>
-          <div class="text-[10px] text-slate-500 mt-0.5">Frente à receita líquida R$ 3,56/pax</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO 2: MAPA INTERATIVO DAS ROTAS NO CENTRO HISTÓRICO -->
-    <section id="mapa-rotas" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Georreferenciamento Urbano</span>
-          <h2 class="text-xl font-bold text-slate-900 mt-0.5">Traçado das Linhas Sibipiruna e Jequitibá (17,4 km)</h2>
-          <p class="text-sm text-slate-500 mt-0.5">
-            Explore as estações, conexões metroferroviárias e os vetores de adensamento habitacional do PIU Setor Central.
-          </p>
-        </div>
-
-        <!-- Controles de Camadas do Mapa -->
-        <div class="flex flex-wrap gap-2">
-          <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 text-red-900 text-xs font-semibold cursor-pointer select-none">
-            <input id="layerSibipiruna" type="checkbox" checked class="accent-red-600 rounded" />
-            <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-            Linha Sibipiruna (6,3 km • 14 est.)
-          </label>
-          <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs font-semibold cursor-pointer select-none">
-            <input id="layerJequitiba" type="checkbox" checked class="accent-blue-600 rounded" />
-            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-            Linha Jequitibá (11,1 km • 23 est.)
-          </label>
-          <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs font-semibold cursor-pointer select-none">
-            <input id="layerPiu" type="checkbox" checked class="accent-amber-600 rounded" />
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            Polos PIU Setor Central
-          </label>
-          <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-900 text-xs font-semibold cursor-pointer select-none">
-            <input id="layerLinha19" type="checkbox" checked class="accent-purple-600 rounded" />
-            <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
-            Futura Linha 19-Celeste
-          </label>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Container Leaflet -->
-        <div class="lg:col-span-8 relative">
-          <div id="map" class="border border-slate-200"></div>
-        </div>
-
-        <!-- Ficha Técnica das Linhas e Integrações -->
-        <div class="lg:col-span-4 space-y-4">
-          <div class="p-4 rounded-xl bg-red-50/70 border border-red-200">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-red-700">Linha 1 • Sibipiruna</span>
-              <span class="text-xs font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded-md">6,3 km • 14 estações</span>
-            </div>
-            <p class="text-xs text-slate-700 mt-2 leading-relaxed">
-              Eixo longitudinal noroeste–centro conectando <strong>Bom Retiro</strong>, <strong>Estação da Luz / Sala São Paulo</strong>, <strong>Santa Ifigênia</strong>, <strong>Largo do Paissandu</strong>, <strong>Praça Princesa Isabel</strong> e <strong>Campos Elíseos</strong>.
-            </p>
-          </div>
-
-          <div class="p-4 rounded-xl bg-blue-50/70 border border-blue-200">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-blue-700">Linha 2 • Jequitibá</span>
-              <span class="text-xs font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-md">11,1 km • 23 estações</span>
-            </div>
-            <p class="text-xs text-slate-700 mt-2 leading-relaxed">
-              Binário circular em dois anéis (<strong>6,2 km anti-horário</strong> e <strong>4,9 km horário</strong>) ligando <strong>Largo do Paissandu</strong>, <strong>República</strong>, <strong>Largo do Arouche</strong>, <strong>Vale do Anhangabaú</strong>, <strong>Praça da Sé</strong>, <strong>Parque Dom Pedro II</strong>, <strong>Mercado Municipal</strong> e <strong>Rua 25 de Março</strong>.
-            </p>
-          </div>
-
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-            <div class="text-xs font-bold uppercase tracking-wider text-slate-700">Integrações Estratégicas Mapeadas</div>
-            <ul class="text-xs text-slate-600 space-y-1.5">
-              <li class="flex items-start gap-2">
-                <span class="text-blue-600 font-bold">•</span>
-                <span><strong>8 Estações de Metrô:</strong> Luz (L1/L4), São Bento (L1), Sé (L1/L3), Anhangabaú (L3), República (L3/L4), Santa Cecília (L3), Pedro II (L3) e futura Anhangabaú/São Bento (L19-Celeste).</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-blue-600 font-bold">•</span>
-                <span><strong>2 Estações CPTM e 5 Terminais:</strong> Luz e Júlio Prestes; Terminais Parque Dom Pedro II, Princesa Isabel, Amaral Gurgel, Bandeira e Correio.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO 3: SIMULADOR DE PROJEÇÃO DE DEMANDA (10 E 15 ANOS) -->
-    <section id="projecao-demanda" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Modelagem Econométrica &amp; Dados Públicos</span>
-          <h2 class="text-xl font-bold text-slate-900 mt-0.5">Projeção de Demanda no Horizonte de 10 e 15 Anos (2029–2044)</h2>
-          <p class="text-sm text-slate-500 mt-0.5">
-            Decomposição baseada na Pesquisa Origem-Destino do Metrô, metas da Lei do PIU Setor Central e cronograma da Linha 19-Celeste.
-          </p>
-        </div>
-        <button type="button" id="apply15yProjectionBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition cursor-pointer self-start md:self-auto">
-          Aplicar Projeção 2044 (241.143 pax/dia) no Simulador ↑
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Gráfico de Barras Empilhadas (2029 - 2044) -->
-        <div class="lg:col-span-7 bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-bold text-slate-800">Evolução da Demanda Diária por Vetor Gerador (pax/dia)</h3>
-            <span class="text-[11px] font-medium text-slate-500">Sem integração gratuita adicional</span>
-          </div>
-          <div class="relative h-80 w-full">
-            <canvas id="demandProjectionChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Metodologia e Fontes de Dados Reais -->
-        <div class="lg:col-span-5 space-y-3">
-          <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-800">1. Base Prefeitura / PPP Bonde SP (2029)</span>
-              <span class="text-xs font-extrabold text-blue-700">120.000 pax/dia</span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1">
-              Demanda inicial estimada nos estudos de concessão para os 17,4 km e 37 estações, associada à retirada estimada de 11.000 automóveis/dia do anel central.
-            </p>
-          </div>
-
-          <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-800">2. PIU Setor Central (Lei 17.844/2022)</span>
-              <span class="text-xs font-extrabold text-amber-700">+31.339 (2039) / +51.893 (2044)</span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1">
-              Meta urbanística de até 220.000 novos moradores no perímetro central. Aplicando a taxa da <strong>Pesquisa OD Metrô</strong> (1,85 viagens motorizadas/hab/dia) e captura <em>last-mile</em> de 14% a 15% nas quadras lindeiras.
-            </p>
-          </div>
-
-          <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-800">3. Linha 19-Celeste + BRT Radial Leste</span>
-              <span class="text-xs font-extrabold text-purple-700">+34.650 (2039) / +47.250 (2044)</span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1">
-              A Linha 19-Celeste (Guarulhos–Anhangabaú, 630.000 pax/dia previstos a partir de 2032/2033) e o novo BRT Radial Leste despejam fluxos no Anhangabaú e Parque Dom Pedro II, gerando transbordos de distribuição interna.
-            </p>
-          </div>
-
-          <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-800">4. Reestruturação SPTrans &amp; Migração Modal</span>
-              <span class="text-xs font-extrabold text-emerald-700">+15.400 (2039) / +22.000 (2044)</span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1">
-              Seccionamento de linhas radiais de ônibus nos terminais perimetrais (Princesa Isabel, Amaral Gurgel e Parque Dom Pedro II) e migração de viagens curtas de carro/aplicativo.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO 4: COMPARATIVO FINANCEIRO (CAPEX, OPEX E CUSTO POR PASSAGEIRO) -->
-    <section id="comparativo-financeiro" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Engenharia Econômica &amp; Avaliação de Projetos</span>
-          <h2 class="text-xl font-bold text-slate-900 mt-0.5">Comparativo de CAPEX, OPEX e Custo por Passageiro</h2>
-          <p class="text-sm text-slate-500 mt-0.5">
-            Valores atualizados dinamicamente para a demanda selecionada de <strong id="financeDemandSubtitle" class="text-slate-800">120.000 pax/dia</strong> (318 dias equivalentes/ano • 38,16 milhões de pax/ano).
-          </p>
-        </div>
-        <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-          Premissa financeira: Amortização CAPEX em <strong>30 anos a 6% a.a.</strong> (PMT = 0,0726489)
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        <!-- Gráfico de Custo por Passageiro (Empilhado: OPEX + CAPEX) -->
-        <div class="lg:col-span-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
-          <h3 class="text-sm font-bold text-slate-800 mb-3">Composição do Custo por Passageiro (R$/pax)</h3>
-          <div class="relative h-72 w-full">
-            <canvas id="costPerPaxChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Tabela Detalhada de Parâmetros e Resultados -->
-        <div class="lg:col-span-7 overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="bg-slate-100 text-slate-700 border-y border-slate-200">
-                <th class="py-3 px-3 font-bold">Indicador Técnico / Financeiro</th>
-                <th class="py-3 px-3 font-bold text-amber-800 bg-amber-50/70">VLT (Sobre Trilhos)</th>
-                <th class="py-3 px-3 font-bold text-blue-800 bg-blue-50/70">VLE (Bonde Digital)</th>
-                <th class="py-3 px-3 font-bold text-emerald-800 bg-emerald-50/70">BRT Elétrico (18m–21m)</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 text-slate-700">
-              <tr>
-                <td class="py-2.5 px-3 font-medium">CAPEX Total do Projeto</td>
-                <td class="py-2.5 px-3 font-semibold">R$ 4,100 bilhões</td>
-                <td class="py-2.5 px-3 font-semibold bg-blue-50/30">R$ 2,845 bilhões <span class="block text-[10px] font-normal text-slate-500">(R$ 2,48 bi púb. + R$ 365 mi TransVida)</span></td>
-                <td class="py-2.5 px-3 font-semibold">R$ 783 milhões</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-3 font-medium">CAPEX por Quilômetro (17,4 km)</td>
-                <td class="py-2.5 px-3">R$ 235,6 mi/km</td>
-                <td class="py-2.5 px-3 bg-blue-50/30">R$ 163,5 mi/km</td>
-                <td class="py-2.5 px-3">R$ 45,0 mi/km</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-3 font-medium">Amortização Anual do CAPEX</td>
-                <td class="py-2.5 px-3">R$ 297,86 mi/ano</td>
-                <td class="py-2.5 px-3 bg-blue-50/30">R$ 206,69 mi/ano</td>
-                <td class="py-2.5 px-3">R$ 56,88 mi/ano</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-3 font-medium">OPEX Operacional Anual</td>
-                <td class="py-2.5 px-3">R$ 52,27 mi/ano <span class="block text-[10px] text-slate-400">(R$ 36,50/km)</span></td>
-                <td class="py-2.5 px-3 bg-blue-50/30">R$ 45,82 mi/ano <span class="block text-[10px] text-slate-400">(R$ 32,00/km)</span></td>
-                <td class="py-2.5 px-3">R$ 47,36 mi/ano <span class="block text-[10px] text-slate-400">(R$ 24,50/km • 1,35x km pico)</span></td>
-              </tr>
-              <tr class="bg-slate-50/80">
-                <td class="py-2.5 px-3 font-bold text-slate-900">OPEX por Passageiro</td>
-                <td id="tblVltOpexPax" class="py-2.5 px-3 font-bold text-slate-900">R$ 1,37</td>
-                <td id="tblVleOpexPax" class="py-2.5 px-3 font-bold text-blue-900 bg-blue-50/50">R$ 1,20</td>
-                <td id="tblBrtOpexPax" class="py-2.5 px-3 font-bold text-slate-900">R$ 1,24</td>
-              </tr>
-              <tr class="bg-slate-50/80">
-                <td class="py-2.5 px-3 font-bold text-slate-900">CAPEX Amortizado por Passageiro</td>
-                <td id="tblVltCapexPax" class="py-2.5 px-3 font-bold text-slate-900">R$ 7,81</td>
-                <td id="tblVleCapexPax" class="py-2.5 px-3 font-bold text-blue-900 bg-blue-50/50">R$ 5,42</td>
-                <td id="tblBrtCapexPax" class="py-2.5 px-3 font-bold text-slate-900">R$ 1,49</td>
-              </tr>
-              <tr class="bg-slate-100 border-t-2 border-slate-300">
-                <td class="py-3 px-3 font-extrabold text-slate-900">Custo Econômico Total / Pax</td>
-                <td id="tblVltTotalPax" class="py-3 px-3 font-extrabold text-amber-800 text-sm">R$ 9,18</td>
-                <td id="tblVleTotalPax" class="py-3 px-3 font-extrabold text-blue-800 bg-blue-100/60 text-sm">R$ 6,62</td>
-                <td id="tblBrtTotalPax" class="py-3 px-3 font-extrabold text-emerald-800 text-sm">R$ 2,73</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-3 font-medium">Saldo vs. Receita Líquida (R$ 3,56)</td>
-                <td id="tblVltBalance" class="py-2.5 px-3 font-bold text-rose-600">-R$ 5,62 / pax</td>
-                <td id="tblVleBalance" class="py-2.5 px-3 font-bold text-rose-600 bg-blue-50/30">-R$ 3,06 / pax</td>
-                <td id="tblBrtBalance" class="py-2.5 px-3 font-bold text-emerald-600">+R$ 0,83 / pax</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO 5: ANÁLISE DE ESTRESSE E CAPACIDADE DE ADAPTAÇÃO NO PICO -->
-    <section id="capacidade-pico" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">Engenharia de Tráfego &amp; Resiliência Operacional</span>
-          <h2 class="text-xl font-bold text-slate-900 mt-0.5">Capacidade de Adaptação em Cenários de Pico</h2>
-          <p class="text-sm text-slate-500 mt-0.5">
-            Fórmula de oferta da rede: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs text-slate-800">4 fluxos × (60 / headway) × capacidade veículo × fator de giro (1,60)</code> vs. Demanda Hora-Pico (<strong id="stressPeakDemandText" class="text-slate-800">11.400 pax/h</strong>).
-          </p>
-        </div>
-      </div>
-
-      <!-- Cards de Estresse por Modal -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- Card Modal 1: VLE (Bonde Digital) -->
-        <div class="rounded-xl border border-slate-200 p-5 bg-slate-50/60 flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-bold text-slate-900">VLE (Bonde Digital / DRT)</h3>
-              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">250 pax/veículo</span>
-            </div>
-            <p class="text-xs text-slate-500 mt-1">Composição de 3 módulos articulados (30–32m) guiados por ímãs no pavimento.</p>
-
-            <!-- Barra 1: No Headway Selecionado -->
-            <div class="mt-4 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Headway Atual (<span class="current-hw-label">6,0</span> min)</span>
-                <span id="stressVleCurrentPct" class="font-extrabold text-emerald-700">71,3%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                <div id="stressVleCurrentBar" class="bg-emerald-500 h-3 rounded-full transition-all duration-300" style="width: 71.3%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500 flex justify-between">
-                <span>Oferta: <strong id="stressVleCurrentCap">16.000 pax/h</strong></span>
-                <span id="stressVleCurrentTag" class="font-semibold text-emerald-700">Operação Normal</span>
-              </div>
-            </div>
-
-            <!-- Barra 2: No Headway Limite Físico (4,0 min) -->
-            <div class="mt-4 pt-3 border-t border-slate-200 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Limite Físico (4,0 min • 15 v/h)</span>
-                <span id="stressVleMaxPct" class="font-extrabold text-slate-700">47,5%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                <div id="stressVleMaxBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 47.5%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500">
-                Teto estrutural da rede: <strong>24.000 embarques/hora</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 leading-relaxed">
-            <strong>Gargalo de Adaptação:</strong> Não permite acoplamento duplo (60m) pois bloquearia os cruzamentos das quadras curtas do Triângulo Histórico. Abaixo de 4,0 min, gera conflito semafórico severo nas interseções em nível.
-          </div>
-        </div>
-
-        <!-- Card Modal 2: VLT Convencional -->
-        <div class="rounded-xl border border-slate-200 p-5 bg-slate-50/60 flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-bold text-slate-900">VLT (Sobre Trilhos)</h3>
-              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">350 pax/veículo</span>
-            </div>
-            <p class="text-xs text-slate-500 mt-1">Composição ferroviária leve com prioridade semafórica dedicada.</p>
-
-            <!-- Barra 1: No Headway Selecionado -->
-            <div class="mt-4 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Headway Atual (<span class="current-hw-label">6,0</span> min)</span>
-                <span id="stressVltCurrentPct" class="font-extrabold text-emerald-700">50,9%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                <div id="stressVltCurrentBar" class="bg-emerald-500 h-3 rounded-full transition-all duration-300" style="width: 50.9%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500 flex justify-between">
-                <span>Oferta: <strong id="stressVltCurrentCap">22.400 pax/h</strong></span>
-                <span id="stressVltCurrentTag" class="font-semibold text-emerald-700">Alta Folga</span>
-              </div>
-            </div>
-
-            <!-- Barra 2: No Headway Limite Físico (3,0 min) -->
-            <div class="mt-4 pt-3 border-t border-slate-200 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Limite Físico (3,0 min • 20 v/h)</span>
-                <span id="stressVltMaxPct" class="font-extrabold text-slate-700">25,4%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                <div id="stressVltMaxBar" class="bg-amber-600 h-2.5 rounded-full transition-all duration-300" style="width: 25.4%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500">
-                Teto estrutural da rede: <strong>44.800 embarques/hora</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-lg bg-slate-100 border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
-            <strong>Resiliência:</strong> Absorve com folga a projeção de 15 anos (2044), mas a rigidez do trilho fixo impede desvios operacionais em caso de bloqueios viários, obras emergenciais ou manifestações no Centro.
-          </div>
-        </div>
-
-        <!-- Card Modal 3: BRT Elétrico Articulado -->
-        <div class="rounded-xl border border-slate-200 p-5 bg-slate-50/60 flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-bold text-slate-900">BRT Elétrico (18m–21m)</h3>
-              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">150 pax/veículo</span>
-            </div>
-            <p class="text-xs text-slate-500 mt-1">Ônibus articulados elétricos em canaleta segregada com faixa de ultrapassagem.</p>
-
-            <!-- Barra 1: No Headway Selecionado -->
-            <div class="mt-4 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Headway Atual (<span class="current-hw-label">6,0</span> min)</span>
-                <span id="stressBrtCurrentPct" class="font-extrabold text-rose-700">118,8%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                <div id="stressBrtCurrentBar" class="bg-rose-500 h-3 rounded-full transition-all duration-300" style="width: 100%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500 flex justify-between">
-                <span>Oferta: <strong id="stressBrtCurrentCap">9.600 pax/h</strong></span>
-                <span id="stressBrtCurrentTag" class="font-semibold text-rose-700">Exige Headway &le; 4,5 min</span>
-              </div>
-            </div>
-
-            <!-- Barra 2: No Headway Limite Físico (2,0 min) -->
-            <div class="mt-4 pt-3 border-t border-slate-200 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span>No Limite Físico (2,0 min • 30 v/h)</span>
-                <span id="stressBrtMaxPct" class="font-extrabold text-slate-700">39,6%</span>
-              </div>
-              <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                <div id="stressBrtMaxBar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-300" style="width: 39.6%"></div>
-              </div>
-              <div class="text-[11px] text-slate-500">
-                Teto estrutural da rede: <strong>28.800 embarques/hora</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 leading-relaxed">
-            <strong>Máxima Flexibilidade:</strong> Opera naturalmente com intervalos de 2 a 3 minutos em São Paulo, permite linhas expressas com ultrapassagem nas estações, uso de biarticulados (220 pax) e desvio imediato de rota.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="conclusoes" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-      <div class="mb-5">
-        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Síntese do Cenário</span>
-        <h2 class="text-xl font-bold text-slate-900 mt-0.5">Conclusões do cenário simulado</h2>
-        <p class="text-sm text-slate-500 mt-0.5">
-          Resumo atualizado conforme a demanda, o intervalo entre veículos e a integração selecionados.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div class="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
-          <h3 class="text-sm font-bold text-blue-900">Custo econômico por passageiro</h3>
-          <p class="text-xs text-slate-700 mt-2 leading-relaxed">
-            Para a demanda efetiva de <strong id="conclusionDemand">120.000</strong> pax/dia, o custo total estimado é:
-          </p>
-          <ul class="mt-3 space-y-1.5 text-sm">
-            <li class="flex justify-between gap-3"><span>VLE (Bonde Digital)</span><strong id="conclusionVleCost">R$ 6,62</strong></li>
-            <li class="flex justify-between gap-3"><span>VLT sobre trilhos</span><strong id="conclusionVltCost">R$ 9,18</strong></li>
-            <li class="flex justify-between gap-3"><span>BRT elétrico</span><strong id="conclusionBrtCost">R$ 2,73</strong></li>
-          </ul>
-          <p class="text-xs text-slate-600 mt-3 leading-relaxed">
-            Nas premissas atuais, o BRT tem o menor custo total estimado por passageiro; o VLE fica entre o BRT e o VLT. Os valores incluem OPEX e CAPEX amortizado em 30 anos a 6% a.a.
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
-          <h3 class="text-sm font-bold text-amber-900">Capacidade na hora-pico</h3>
-          <p class="text-xs text-slate-700 mt-2 leading-relaxed">
-            Ocupação estimada no intervalo atual de <strong id="conclusionHeadway">6,0</strong> min:
-          </p>
-          <ul class="mt-3 space-y-1.5 text-sm">
-            <li class="flex justify-between gap-3"><span>VLE</span><strong id="conclusionVleOccupancy">71,3%</strong></li>
-            <li class="flex justify-between gap-3"><span>VLT sobre trilhos</span><strong id="conclusionVltOccupancy">50,9%</strong></li>
-            <li class="flex justify-between gap-3"><span>BRT elétrico</span><strong id="conclusionBrtOccupancy">118,8%</strong></li>
-          </ul>
-          <p id="conclusionCapacityNote" class="text-xs text-amber-900 mt-3 leading-relaxed">
-            No intervalo atual, o BRT supera sua capacidade teórica neste modelo; reduza o intervalo entre veículos ou revise a oferta.
-          </p>
-        </div>
-
-        <div class="lg:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-5">
-          <h3 class="text-sm font-bold text-slate-900">Leitura para a tomada de decisão</h3>
-          <p class="text-sm text-slate-700 mt-2 leading-relaxed">
-            A comparação sugere um trade-off entre custo, capacidade e características de implantação — não uma escolha automática de tecnologia. Antes de decidir, é importante validar as projeções de demanda e os custos, além de avaliar espaço viário, obras, acessibilidade, integração com a rede e resiliência operacional. Os resultados são estimativas baseadas nas premissas apresentadas e não substituem estudos de viabilidade.
-          </p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Rodapé Metodológico -->
-  <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
-      <div>
-        <p class="font-semibold text-slate-200">Notas Metodológicas e Fontes de Referência</p>
-        <p class="mt-1">
-          Dados baseados nos estudos de concessão do Bonde São Paulo (PMSP / TransVida), Pesquisa Origem-Destino do Metrô-SP, Lei do PIU Setor Central (Lei 17.844/2022), estudos da Linha 19-Celeste e parâmetros tarifários SPTrans.
-        </p>
-      </div>
-      <div class="text-slate-500 shrink-0">
-        Simulador Interativo • Engenharia de Transportes
+  <!-- CONTROLES INTERATIVOS -->
+  <section class="controls-grid">
+    <div class="control-box">
+      <label>Horizonte de Projeção (OD + PIU + L19)</label>
+      <div class="btn-row">
+        <button id="btn-2029" class="active" onclick="setHorizon(2029, 120000)">2029 (Base: 120k)</button>
+        <button id="btn-2039" onclick="setHorizon(2039, 201389)">2039 (+10a: 201k)</button>
+        <button id="btn-2044" onclick="setHorizon(2044, 241143)">2044 (+15a: 241k)</button>
       </div>
     </div>
-  </footer>
 
-  <!-- Script Principal -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // =========================================================================
-      // 1. PARÂMETROS ECONÔMICOS E OPERACIONAIS EXATOS
-      // =========================================================================
-      const PMT_30Y_6PCT = 0.0726489; // Fator de recuperação de capital (30 anos, 6% a.a.)
-      const EQUIVALENT_DAYS_YEAR = 318;
-      const PEAK_SHARE = 0.095; // 9,5% da demanda diária na hora-pico
-      const TURNOVER_FACTOR = 1.60; // Fator de giro de passageiros ao longo dos anéis/linhas
-      const ACTIVE_FLOWS = 4; // 2 sentidos na Linha Sibipiruna + 2 anéis na Linha Jequitibá
-      const NET_REVENUE_PER_PAX = 3.56; // Receita líquida média SPTrans após integrações/gratuidades
+    <div class="control-box">
+      <label>Demanda Diária Simulada <span id="lbl-demanda">120.000 pax/dia</span></label>
+      <input type="range" id="slider-demanda" min="60000" max="300000" step="2500" value="120000" oninput="onSliderChange()" />
+      <div class="btn-row" style="margin-top:8px;">
+        <button id="btn-integracao" onclick="toggleIntegracao()">Integração Tarifária Gratuita (+25%)</button>
+      </div>
+    </div>
 
-      const MODALS = {
-        vlt: {
-          name: 'VLT (Sobre Trilhos)',
-          capexTotal: 4100000000, // R$ 4,100 bi
-          opexAnnual: 52270000,   // R$ 52,27 mi/ano
-          vehicleCap: 350,
-          minHeadway: 3.0
-        },
-        vle: {
-          name: 'VLE (Bonde Digital)',
-          capexTotal: 2845000000, // R$ 2,845 bi
-          opexAnnual: 45820000,   // R$ 45,82 mi/ano
-          vehicleCap: 250,
-          minHeadway: 4.0
-        },
-        brt: {
-          name: 'BRT Elétrico',
-          capexTotal: 783000000,  // R$ 783 mi
-          opexAnnual: 47360000,   // R$ 47,36 mi/ano
-          vehicleCap: 150,
-          minHeadway: 2.0
-        }
-      };
+    <div class="control-box">
+      <label>Intervalo (Headway) no Pico <span id="lbl-headway">6,0 min</span></label>
+      <input type="range" id="slider-headway" min="2.5" max="8.0" step="0.5" value="6.0" oninput="onSliderChange()" />
+      <div style="font-size:0.74rem; color:var(--muted); margin-top:6px;">
+        Limite semafórico no Centro: VLT ≥ 3,0 min | VLE ≥ 4,0 min
+      </div>
+    </div>
 
-      // Pré-cálculo da amortização anual fixa
-      Object.keys(MODALS).forEach(key => {
-        MODALS[key].annualizedCapex = MODALS[key].capexTotal * PMT_30Y_6PCT;
-      });
+    <div class="control-box">
+      <label>Configuração de Frota e Custos</label>
+      <div class="btn-row">
+        <button id="btn-bitrem" onclick="toggleBitrem()">VLT Bi-Trem no Pico (700 lug.): OFF</button>
+        <button id="btn-juros" class="toggle-on" onclick="toggleJuros()">Incluir Juros Reais (6% a.a.): ON</button>
+      </div>
+    </div>
+  </section>
 
-      // Utilitários de formatação pt-BR
-      const fmtInt = (val) => Math.round(val).toLocaleString('pt-BR');
-      const fmtBRL = (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const fmtPct = (val) => val.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-      const fmtDec = (val) => val.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  <!-- KPIS PRINCIPAIS -->
+  <nav class="tabs" role="tablist" aria-label="Visões do simulador">
+    <button id="tab-simulador" role="tab" aria-controls="panel-simulador" aria-selected="true" class="active" onclick="showTab('simulador')">Simulador</button>
+    <button id="tab-conclusoes" role="tab" aria-controls="panel-conclusoes" aria-selected="false" tabindex="-1" onclick="showTab('conclusoes')">Conclusões</button>
+  </nav>
+  <div id="panel-simulador" role="tabpanel" aria-labelledby="tab-simulador">
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title">Demanda Efetiva Considerada</div>
+      <div class="kpi-val" id="kpi-demanda">120.000</div>
+      <div class="kpi-sub" id="kpi-demanda-sub">38,16 milhões de embarques/ano</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Demanda na Hora-Pico (9,5%)</div>
+      <div class="kpi-val" id="kpi-pico">11.400 emb/h</div>
+      <div class="kpi-sub" id="kpi-pico-sub">Capacidade VLE atual: 16.000 emb/h</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Custo Total / Pax — VLE (Bonde)</div>
+      <div class="kpi-val" style="color:var(--vle);" id="kpi-vle-custo">R$ 6,40</div>
+      <div class="kpi-sub" id="kpi-vle-sub">OPEX R$ 0,94 + Dep. R$ 3,22 + Juros R$ 2,24</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Custo Total / Pax — VLT (Trilhos)</div>
+      <div class="kpi-val" style="color:var(--vlt);" id="kpi-vlt-custo">R$ 6,97</div>
+      <div class="kpi-sub" id="kpi-vlt-sub">OPEX R$ 1,37 + Dep. R$ 2,38 + Juros R$ 3,22</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Custo Total / Pax — BRT Elétrico</div>
+      <div class="kpi-val" style="color:var(--brt);" id="kpi-brt-custo">R$ 2,81</div>
+      <div class="kpi-sub" id="kpi-brt-sub">OPEX R$ 1,11 + Dep. R$ 1,09 + Juros R$ 0,62</div>
+    </div>
+  </section>
 
-      // =========================================================================
-      // 2. INICIALIZAÇÃO DO MAPA LEAFLET (CENTRO HISTÓRICO DE SÃO PAULO)
-      // =========================================================================
-      const map = L.map('map', {
-        center: [-23.5415, -46.6365],
-        zoom: 14,
-        scrollWheelZoom: false
-      });
+  <!-- MAPA E GRÁFICO DE CUSTOS -->
+  <section class="main-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Traçado Esquemático — Centro Histórico de SP</span>
+        <div class="btn-row">
+          <button id="layer-piu" class="toggle-on" onclick="toggleLayer('piu')">Perímetro PIU Central</button>
+          <button id="layer-l19" class="toggle-on" onclick="toggleLayer('l19')">Conexão L19-Celeste</button>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div class="footnote">
+        Coordenadas aproximadas do simulador; linhas, conexões e perímetro PIU são ilustrativos, não limites ou projetos oficiais. Base: OpenStreetMap. Círculos: estações; área verde: PIU; linha roxa: L19.<br>
+        <strong>Linhas:</strong> <span style="color:#ef4444;">■ Sibipiruna (6,3 km / 14 est.)</span> e <span style="color:#38bdf8;">■ Jequitibá (11,1 km anéis / 23 est.)</span>. Integração com Estações Luz, São Bento, Sé, Anhangabaú, República, Pedro II e Brás.
+      </div>
+    </div>
 
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-        maxZoom: 19
-      }).addTo(map);
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Decomposição do Custo por Passageiro (R$/embarque)</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="costChart"></canvas>
+      </div>
+      <div class="footnote">
+        A linha tracejada indica a tarifa pública vigente de <strong>R$ 5,30</strong> (receita líquida média SPTrans pós-integrações: <strong>R$ 3,56/pax</strong>). Note como a depreciação física do VLE (R$ 123,0 mi/ano) supera a do VLT (R$ 90,8 mi/ano).
+      </div>
+    </div>
+  </section>
 
-      // Coordenadas georreferenciadas das rotas
-      const coordsSibipiruna = [
-        [-23.5262, -46.6395], // Bom Retiro (José Paulino / Ribeiro de Lima)
-        [-23.5305, -46.6368], // Sala São Paulo / Júlio Prestes
-        [-23.5348, -46.6352], // Estação da Luz
-        [-23.5385, -46.6378], // Santa Ifigênia
-        [-23.5425, -46.6392], // Largo do Paissandu
-        [-23.5390, -46.6438], // Av. Rio Branco / Aurora
-        [-23.5352, -46.6472], // Praça Princesa Isabel
-        [-23.5320, -46.6512]  // Campos Elíseos (Al. Barão de Limeira / Nothmann)
-      ];
+  <!-- GRÁFICO DE DEMANDA 15 ANOS E TABELA DE ESTRESSE -->
+  <section class="main-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Projeção de Demanda (2029–2044) por Vetor Urbano</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="demandChart"></canvas>
+      </div>
+      <div class="footnote">
+        Baseado na Pesquisa OD Metrô, meta habitacional do <strong>PIU Setor Central (Lei 17.844/2022)</strong> e injeção de demanda da <strong>Linha 19-Celeste</strong> (630 mil pax/dia previstos) nas estações São Bento e Anhangabaú.
+      </div>
+    </div>
 
-      const coordsJequitiba = [
-        [-23.5425, -46.6392], // Largo do Paissandu
-        [-23.5432, -46.6435], // Praça da República
-        [-23.5408, -46.6462], // Largo do Arouche
-        [-23.5458, -46.6448], // Av. Ipiranga / São Luís
-        [-23.5478, -46.6388], // Vale do Anhangabaú / Terminal Bandeira
-        [-23.5503, -46.6342], // Praça da Sé
-        [-23.5492, -46.6285], // Terminal Parque Dom Pedro II
-        [-23.5435, -46.6292], // Zona Cerealista / Mercadão
-        [-23.5418, -46.6322], // Mercado Municipal
-        [-23.5442, -46.6335], // Rua 25 de Março / Ladeira Porto Geral
-        [-23.5448, -46.6358], // São Bento / Largo do Café
-        [-23.5425, -46.6392]  // Fechamento do Anel no Largo do Paissandu
-      ];
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Matriz de Capacidade no Pico e Depreciação Física</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Modal / Tecnologia</th>
+              <th>CAPEX Total</th>
+              <th>Depreciação Anual</th>
+              <th>Oferta Pico (emb/h)</th>
+              <th>Ocupação Pico</th>
+            </tr>
+          </thead>
+          <tbody id="stress-table-body"></tbody>
+        </table>
+      </div>
+      <div class="footnote" id="bitrem-note">
+        <strong>Nota Técnica:</strong> Ative o <em>VLT Bi-Trem</em> acima para simular composições acopladas de 70m (700 lugares) nos horários de pico sem reduzir o intervalo semafórico de 6 minutos.
+      </div>
+    </div>
+  </section>
+  </div>
+  <section id="panel-conclusoes" class="card" role="tabpanel" aria-labelledby="tab-conclusoes" hidden>
+    <h2 class="card-title">Conclusões do cenário simulado</h2>
+    <p>As conclusões acompanham os controles de demanda, intervalo, integração, Bi-Trem e juros.</p>
+    <ul id="conclusion-list" class="conclusion-list" aria-live="polite"></ul>
+    <p class="footnote">Resultados condicionados às premissas deste simulador. A oferta representa embarques agregados na rede, com fator de giro; não equivale à capacidade por sentido no trecho mais carregado. Custos divididos pela demanda pressupõem seu atendimento integral, mesmo em cenários saturados. O Bi-Trem altera a oferta e o OPEX, mas o modelo mantém CAPEX e depreciação fixos. Não substitui estudos de demanda, dimensionamento de frota ou viabilidade.</p>
+  </section>
+</div>
 
-      // Camadas do Mapa
-      const layerSibipiruna = L.layerGroup().addTo(map);
-      const layerJequitiba = L.layerGroup().addTo(map);
-      const layerPiu = L.layerGroup().addTo(map);
-      const layerLinha19 = L.layerGroup().addTo(map);
+<script>
+  // Estado global da simulação
+  const state = {
+    horizon: 2029,
+    baseDemanda: 120000,
+    integracaoGratuita: false,
+    headway: 6.0,
+    vltBitrem: false,
+    incluirJuros: true,
+    showPiu: true,
+    showL19: true
+  };
 
-      // Polilinhas das Rotas
-      L.polyline(coordsSibipiruna, {
-        color: '#dc2626',
-        weight: 5,
-        opacity: 0.9
-      }).bindPopup('<strong>Linha 1 — Sibipiruna (Vermelha)</strong><br>Extensão: 6,3 km • 14 estações<br>Eixo: Bom Retiro ↔ Luz ↔ Paissandu ↔ Campos Elíseos').addTo(layerSibipiruna);
+  // Parâmetros físicos e financeiros auditados (Python)
+  const DIAS_ANO = 318;
+  const KM_CICLO = 23.7;
+  const HORAS_DIA = 19;
+  const GIRO_ANEL = 1.60;
+  const FATOR_PICO = 0.095;
 
-      L.polyline(coordsJequitiba, {
-        color: '#2563eb',
-        weight: 5,
-        opacity: 0.85,
-        dashArray: '8, 4'
-      }).bindPopup('<strong>Linha 2 — Jequitibá (Azul)</strong><br>Extensão: 11,1 km (anéis de 6,2 km e 4,9 km) • 23 estações<br>Eixo: República ↔ Anhangabaú ↔ Sé ↔ Pq. Dom Pedro II ↔ Mercadão / 25 de Março').addTo(layerJequitiba);
+  const PARAMS = {
+    vlt: {
+      nome: "VLT (Sobre Trilhos)",
+      capex: 4100e6,
+      opexBase: 52.27e6,
+      depAnual: (3075e6 / 50) + (1025e6 / 35), // R$ 90.79 mi/ano
+      jurosAnual: 4100e6 * 0.03,                // R$ 123.00 mi/ano
+      capSimples: 350,
+      capBitrem: 700,
+      headwayMin: 3.0
+    },
+    vle: {
+      nome: "VLE (Bonde Digital / DRT)",
+      capex: 2845e6,
+      opexBase: 35.82e6,
+      depAnual: (1991.5e6 / 30) + (853.5e6 / 25) + (180e6 / 8), // R$ 123.02 mi/ano
+      jurosAnual: 2845e6 * 0.03,                                // R$ 85.35 mi/ano
+      capVeic: 250,
+      headwayMin: 4.0
+    },
+    brt: {
+      nome: "BRT Elétrico (Articulado)",
+      capex: 783e6,
+      opexBase: 42.36e6,
+      depAnual: (508.95e6 / 30) + (274.05e6 / 15) + (95e6 / 15), // R$ 41.57 mi/ano
+      jurosAnual: 783e6 * 0.03,                                  // R$ 23.49 mi/ano
+      capVeic: 150,
+      fatorFreq: 1.35,
+      headwayMin: 2.0
+    }
+  };
 
-      // Marcadores de Estações / Conexões Estratégicas
-      const keyStations = [
-        { name: 'Estação da Luz / Sala SP', lat: -23.5348, lng: -46.6352, line: 'Sibipiruna', color: '#dc2626', desc: 'Integração Metrô L1-Azul, L4-Amarela e CPTM.' },
-        { name: 'Bom Retiro', lat: -23.5262, lng: -46.6395, line: 'Sibipiruna', color: '#dc2626', desc: 'Polo comercial e confecções (Rua José Paulino).' },
-        { name: 'Praça Princesa Isabel', lat: -23.5352, lng: -46.6472, line: 'Sibipiruna', color: '#dc2626', desc: 'Terminal de ônibus e conexão Campos Elíseos.' },
-        { name: 'Largo do Paissandu', lat: -23.5425, lng: -46.6392, line: 'Integração Sibipiruna + Jequitibá', color: '#7c3aed', desc: 'Nó central de transferência entre as duas linhas do Bonde SP.' },
-        { name: 'Praça da República', lat: -23.5432, lng: -46.6435, line: 'Jequitibá', color: '#2563eb', desc: 'Conexão Metrô L3-Vermelha e L4-Amarela.' },
-        { name: 'Vale do Anhangabaú', lat: -23.5478, lng: -46.6388, line: 'Jequitibá', color: '#2563eb', desc: 'Conexão Metrô L3, Terminal Bandeira e futura L19-Celeste.' },
-        { name: 'Praça da Sé', lat: -23.5503, lng: -46.6342, line: 'Jequitibá', color: '#2563eb', desc: 'Maior hub metroviário da cidade (L1-Azul e L3-Vermelha).' },
-        { name: 'Parque Dom Pedro II', lat: -23.5492, lng: -46.6285, line: 'Jequitibá', color: '#2563eb', desc: 'Integração Terminal Pq. Dom Pedro II, Metrô L3 e futuro BRT Radial Leste.' },
-        { name: 'Mercado Municipal / 25 de Março', lat: -23.5418, lng: -46.6322, line: 'Jequitibá', color: '#2563eb', desc: 'Maior polo varejista e atacadista da América Latina.' }
-      ];
+  // Inicialização do Mapa Leaflet
+  const map = L.map('map').setView([-23.5435, -46.6335], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+  L.control.scale({ imperial: false }).addTo(map);
 
-      keyStations.forEach(st => {
-        const icon = L.divIcon({
-          className: '',
-          html: `<div class="custom-station-icon" style="width:16px;height:16px;background:${st.color};"></div>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
-        });
-        const targetGroup = st.line === 'Sibipiruna' ? layerSibipiruna : layerJequitiba;
-        L.marker([st.lat, st.lng], { icon })
-          .bindPopup(`<strong>${st.name}</strong><br><span style="color:${st.color};font-weight:700;font-size:11px;">${st.line}</span><br><span style="font-size:12px;">${st.desc}</span>`)
-          .addTo(targetGroup);
-      });
+  // Coordenadas aproximadas das Linhas Sibipiruna e Jequitibá
+  const sibipirunaCoords = [
+    [-23.5352, -46.6336], // Luz
+    [-23.5385, -46.6350], // Rua Florêncio de Abreu
+    [-23.5446, -46.6345], // São Bento
+    [-23.5503, -46.6333], // Praça da Sé
+    [-23.5540, -46.6285], // Parque Dom Pedro II
+    [-23.5480, -46.6165]  // Estação Brás
+  ];
 
-      // Polos Geradores PIU Setor Central (Círculos translúcidos)
-      const piuPolos = [
-        { name: 'PIU Setor Central — Eixo Campos Elíseos / Luz', lat: -23.5335, lng: -46.6445, radius: 480 },
-        { name: 'PIU Setor Central — Eixo Parque Dom Pedro II / Brás', lat: -23.5475, lng: -46.6265, radius: 520 },
-        { name: 'PIU Setor Central — Triângulo Histórico / República', lat: -23.5445, lng: -46.6395, radius: 450 }
-      ];
-      piuPolos.forEach(p => {
-        L.circle([p.lat, p.lng], {
-          radius: p.radius,
-          color: '#d97706',
-          weight: 1.5,
-          fillColor: '#f59e0b',
-          fillOpacity: 0.16
-        }).bindPopup(`<strong>${p.name}</strong><br>Perímetro de adensamento habitacional (Lei 17.844/2022 — meta de até 220 mil novos moradores).`).addTo(layerPiu);
-      });
+  const jequitibaCoords = [
+    [-23.5315, -46.6395], // Bom Retiro / Tiradentes
+    [-23.5352, -46.6336], // Luz
+    [-23.5415, -46.6435], // República
+    [-23.5475, -46.6415], // Anhangabaú
+    [-23.5503, -46.6333], // Sé
+    [-23.5450, -46.6280], // 25 de Março / Mercado
+    [-23.5315, -46.6395]  // Fecha anel
+  ];
 
-      // Futura Linha 19-Celeste (Anhangabaú / São Bento)
-      const l19Coords = [
-        [-23.5240, -46.6220], // Pari / Guarulhos
-        [-23.5445, -46.6345], // São Bento
-        [-23.5478, -46.6388]  // Anhangabaú
-      ];
-      L.polyline(l19Coords, {
-        color: '#9333ea',
-        weight: 4,
-        dashArray: '4, 8',
-        opacity: 0.85
-      }).bindPopup('<strong>Futura Linha 19-Celeste do Metrô</strong><br>Previsão de 630 mil pax/dia (horizonte 2032/2033) com conexão direta no Anhangabaú e São Bento.').addTo(layerLinha19);
+  L.polyline(sibipirunaCoords, { color: '#ef4444', weight: 5, opacity: 0.9 })
+    .addTo(map).bindPopup('<strong>Linha Sibipiruna (6,3 km)</strong><br>14 estações • Eixo Luz – Sé – Brás');
 
-      // Controle de checkboxes das camadas
-      document.getElementById('layerSibipiruna').addEventListener('change', (e) => {
-        e.target.checked ? map.addLayer(layerSibipiruna) : map.removeLayer(layerSibipiruna);
-      });
-      document.getElementById('layerJequitiba').addEventListener('change', (e) => {
-        e.target.checked ? map.addLayer(layerJequitiba) : map.removeLayer(layerJequitiba);
-      });
-      document.getElementById('layerPiu').addEventListener('change', (e) => {
-        e.target.checked ? map.addLayer(layerPiu) : map.removeLayer(layerPiu);
-      });
-      document.getElementById('layerLinha19').addEventListener('change', (e) => {
-        e.target.checked ? map.addLayer(layerLinha19) : map.removeLayer(layerLinha19);
-      });
+  L.polyline(jequitibaCoords, { color: '#38bdf8', weight: 4, dashArray: '8,6', opacity: 0.9 })
+    .addTo(map).bindPopup('<strong>Linha Jequitibá (11,1 km anéis)</strong><br>23 estações • Anel Bom Retiro – República – Sé – Mercado');
 
-      // =========================================================================
-      // 3. GRÁFICO DE PROJEÇÃO DE DEMANDA (2029 - 2044)
-      // =========================================================================
-      const ctxProjection = document.getElementById('demandProjectionChart').getContext('2d');
-      new Chart(ctxProjection, {
-        type: 'bar',
-        data: {
-          labels: ['2029 (Inauguração)', '2034 (+5 Anos)', '2039 (+10 Anos)', '2044 (+15 Anos)'],
-          datasets: [
-            {
-              label: 'Base Prefeitura (PPP)',
-              data: [120000, 120000, 120000, 120000],
-              backgroundColor: '#2563eb',
-              borderRadius: 4
-            },
-            {
-              label: 'Adensamento PIU Setor Central',
-              data: [0, 14500, 31339, 51893],
-              backgroundColor: '#f59e0b',
-              borderRadius: 4
-            },
-            {
-              label: 'Transbordo Linha 19-Celeste + BRT Leste',
-              data: [0, 21000, 34650, 47250],
-              backgroundColor: '#9333ea',
-              borderRadius: 4
-            },
-            {
-              label: 'Reestruturação SPTrans & Migração Modal',
-              data: [0, 8500, 15400, 22000],
-              backgroundColor: '#10b981',
-              borderRadius: 4
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { boxWidth: 12, font: { size: 11, family: 'Inter' } }
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: +${fmtInt(ctx.raw)} pax/dia`,
-                footer: (items) => {
-                  const total = items.reduce((sum, item) => sum + item.raw, 0);
-                  return `Total Projetado: ${fmtInt(total)} pax/dia`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: {
-              stacked: true,
-              beginAtZero: true,
-              max: 270000,
-              ticks: {
-                font: { size: 11 },
-                callback: (val) => (val / 1000) + ' mil'
-              }
-            }
+  const estacoes = [
+    { nome: "Estação Luz (CPTM / L1 / L4)", pos: [-23.5352, -46.6336] },
+    { nome: "Estação São Bento (L1 / Futura L19)", pos: [-23.5446, -46.6345] },
+    { nome: "Praça da Sé (L1 / L3)", pos: [-23.5503, -46.6333] },
+    { nome: "República (L3 / L4)", pos: [-23.5415, -46.6435] },
+    { nome: "Anhangabaú (L3 / Futura L19)", pos: [-23.5475, -46.6415] },
+    { nome: "Terminal Parque Dom Pedro II", pos: [-23.5540, -46.6285] },
+    { nome: "Estação Brás (CPTM / L3)", pos: [-23.5480, -46.6165] }
+  ];
+  estacoes.forEach(e => {
+    L.circleMarker(e.pos, { radius: 6, color: '#fff', fillColor: '#f59e0b', fillOpacity: 1, weight: 2 })
+      .addTo(map).bindPopup(`<strong>${e.nome}</strong>`);
+  });
+
+  const piuPolygon = L.polygon([
+    [-23.528, -46.648], [-23.528, -46.614], [-23.558, -46.614], [-23.558, -46.648]
+  ], { color: '#10b981', weight: 1.5, fillOpacity: 0.08 }).addTo(map)
+    .bindPopup('<strong>Perímetro PIU Setor Central (Lei 17.844/2022)</strong><br>Meta de +220 mil novos moradores no Centro');
+
+  const l19Line = L.polyline([
+    [-23.525, -46.625], [-23.5446, -46.6345], [-23.5475, -46.6415]
+  ], { color: '#a855f7', weight: 4, opacity: 0.85 }).addTo(map)
+    .bindPopup('<strong>Linha 19-Celeste (Metrô — Prev. 2033)</strong><br>630 mil pax/dia • Conexões São Bento e Anhangabaú');
+
+  function toggleLayer(name) {
+    if (name === 'piu') {
+      state.showPiu = !state.showPiu;
+      document.getElementById('layer-piu').classList.toggle('toggle-on', state.showPiu);
+      state.showPiu ? piuPolygon.addTo(map) : map.removeLayer(piuPolygon);
+    } else {
+      state.showL19 = !state.showL19;
+      document.getElementById('layer-l19').classList.toggle('toggle-on', state.showL19);
+      state.showL19 ? l19Line.addTo(map) : map.removeLayer(l19Line);
+    }
+  }
+
+  // Inicialização dos Gráficos Chart.js
+  const costCtx = document.getElementById('costChart').getContext('2d');
+  const costChart = new Chart(costCtx, {
+    type: 'bar',
+    data: {
+      labels: ['VLT (Sobre Trilhos)', 'VLE (Bonde Digital)', 'BRT Elétrico'],
+      datasets: [
+        { label: 'OPEX Puro (R$/pax)', data: [1.37, 0.94, 1.11], backgroundColor: '#38bdf8' },
+        { label: 'Depreciação Física (R$/pax)', data: [2.38, 3.22, 1.09], backgroundColor: '#f59e0b' },
+        { label: 'Custo Financeiro / Juros (R$/pax)', data: [3.22, 2.24, 0.62], backgroundColor: '#6366f1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: '#cbd5e1' }, grid: { color: '#334155' } },
+        y: { stacked: true, ticks: { color: '#cbd5e1', callback: v => 'R$ ' + v.toFixed(2) }, grid: { color: '#334155' } }
+      },
+      plugins: {
+        legend: { labels: { color: '#f8fafc' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: R$ ${ctx.parsed.y.toFixed(2)}`
           }
-        }
-      });
-
-      // =========================================================================
-      // 4. GRÁFICO DE COMPOSIÇÃO DO CUSTO POR PASSAGEIRO
-      // =========================================================================
-      const ctxCost = document.getElementById('costPerPaxChart').getContext('2d');
-      const costChart = new Chart(ctxCost, {
-        type: 'bar',
-        data: {
-          labels: ['VLT (Trilhos)', 'VLE (Bonde Digital)', 'BRT Elétrico'],
-          datasets: [
-            {
-              label: 'OPEX Operacional (R$/pax)',
-              data: [1.37, 1.20, 1.24],
-              backgroundColor: '#0f172a',
-              borderRadius: 4
-            },
-            {
-              label: 'CAPEX Amortizado 30a (R$/pax)',
-              data: [7.81, 5.42, 1.49],
-              backgroundColor: ['#d97706', '#2563eb', '#10b981'],
-              borderRadius: 4
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { boxWidth: 12, font: { size: 11, family: 'Inter' } }
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${fmtBRL(ctx.raw)}`,
-                footer: (items) => {
-                  const total = items.reduce((sum, item) => sum + item.raw, 0);
-                  return `Custo Econômico Total: ${fmtBRL(total)} / pax`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } },
-            y: {
-              stacked: true,
-              beginAtZero: true,
-              ticks: {
-                font: { size: 11 },
-                callback: (val) => 'R$ ' + val.toFixed(2).replace('.', ',')
-              }
-            }
-          }
-        }
-      });
-
-      // =========================================================================
-      // 5. MOTOR DE CÁLCULO DINÂMICO E ATUALIZAÇÃO DA INTERFACE
-      // =========================================================================
-      const demandSlider = document.getElementById('demandSlider');
-      const headwaySlider = document.getElementById('headwaySlider');
-      const freeIntegrationToggle = document.getElementById('freeIntegrationToggle');
-      const presetButtons = document.querySelectorAll('.preset-btn');
-
-      function updateSimulation() {
-        const baseDemand = parseFloat(demandSlider.value);
-        const headway = parseFloat(headwaySlider.value);
-        const isFreeIntegration = freeIntegrationToggle.checked;
-
-        // Demanda efetiva (aplica +25% se integração gratuita estiver ativa)
-        const effectiveDemand = isFreeIntegration ? baseDemand * 1.25 : baseDemand;
-        const annualPax = effectiveDemand * EQUIVALENT_DAYS_YEAR;
-        const peakHourDemand = effectiveDemand * PEAK_SHARE;
-
-        // Atualiza labels dos controles
-        document.getElementById('demandBaseDisplay').textContent = `${fmtInt(baseDemand)} pax/dia`;
-        const tripsPerHour = 60 / headway;
-        document.getElementById('headwayDisplay').textContent = `${fmtDec(headway)} min (${fmtDec(tripsPerHour)} viagens/h)`;
-
-        // Atualiza KPIs de Demanda
-        document.getElementById('kpiEffectiveDemand').textContent = `${fmtInt(effectiveDemand)} / dia`;
-        document.getElementById('kpiPeakDemand').textContent = `${fmtInt(peakHourDemand)} pax/h`;
-        document.getElementById('financeDemandSubtitle').textContent = `${fmtInt(effectiveDemand)} pax/dia`;
-        document.getElementById('stressPeakDemandText').textContent = `${fmtInt(peakHourDemand)} pax/h`;
-
-        // Atualiza labels de headway nos cards de estresse
-        document.querySelectorAll('.current-hw-label').forEach(el => {
-          el.textContent = fmtDec(headway);
-        });
-
-        // Cálculo dos custos unitários por modal
-        const results = {};
-        Object.keys(MODALS).forEach(key => {
-          const m = MODALS[key];
-          const opexPax = m.opexAnnual / annualPax;
-          const capexPax = m.annualizedCapex / annualPax;
-          const totalPax = opexPax + capexPax;
-          const balancePax = NET_REVENUE_PER_PAX - totalPax;
-
-          // Oferta horária no headway atual e no headway limite
-          const currentHourlyCap = ACTIVE_FLOWS * (60 / headway) * m.vehicleCap * TURNOVER_FACTOR;
-          const maxHourlyCap = ACTIVE_FLOWS * (60 / m.minHeadway) * m.vehicleCap * TURNOVER_FACTOR;
-
-          const currentOccupancy = (peakHourDemand / currentHourlyCap) * 100;
-          const maxOccupancy = (peakHourDemand / maxHourlyCap) * 100;
-
-          results[key] = {
-            opexPax,
-            capexPax,
-            totalPax,
-            balancePax,
-            currentHourlyCap,
-            maxHourlyCap,
-            currentOccupancy,
-            maxOccupancy
-          };
-        });
-
-        // Atualiza KPIs do Topo (VLE, VLT, BRT e Subsídio)
-        const vle = results.vle;
-        document.getElementById('kpiVleTotalCost').textContent = fmtBRL(vle.totalPax);
-        document.getElementById('kpiVleOpex').textContent = fmtBRL(vle.opexPax);
-        document.getElementById('kpiVleCapex').textContent = fmtBRL(vle.capexPax);
-
-        document.getElementById('kpiVltTotalCost').textContent = `${fmtBRL(results.vlt.totalPax)} / pax`;
-        document.getElementById('kpiBrtTotalCost').textContent = `${fmtBRL(results.brt.totalPax)} / pax`;
-
-        // KPI de Ocupação VLE com alerta visual
-        const vleOccEl = document.getElementById('kpiVleOccupancy');
-        const vleStatusEl = document.getElementById('kpiVleStatus');
-        const vleOccCard = document.getElementById('kpiOccupancyCard');
-
-        vleOccEl.textContent = fmtPct(vle.currentOccupancy);
-        if (vle.currentOccupancy > 100) {
-          vleOccEl.className = 'text-xl font-extrabold text-rose-700 mt-1';
-          vleStatusEl.className = 'text-xs font-semibold text-rose-700 mt-1';
-          vleStatusEl.textContent = `Superlotado! (capac. ${fmtInt(vle.currentHourlyCap)} pax/h)`;
-          vleOccCard.className = 'bg-rose-50 rounded-xl p-4 border border-rose-300 transition-colors';
-        } else if (vle.currentOccupancy > 85) {
-          vleOccEl.className = 'text-xl font-extrabold text-amber-700 mt-1';
-          vleStatusEl.className = 'text-xs font-semibold text-amber-700 mt-1';
-          vleStatusEl.textContent = `Alerta de pico (capac. ${fmtInt(vle.currentHourlyCap)} pax/h)`;
-          vleOccCard.className = 'bg-amber-50 rounded-xl p-4 border border-amber-300 transition-colors';
-        } else {
-          vleOccEl.className = 'text-xl font-extrabold text-emerald-700 mt-1';
-          vleStatusEl.className = 'text-xs font-medium text-emerald-700 mt-1';
-          vleStatusEl.textContent = `Confortável (capac. ${fmtInt(vle.currentHourlyCap)} pax/h)`;
-          vleOccCard.className = 'bg-slate-50 rounded-xl p-4 border border-slate-200 transition-colors';
-        }
-
-        // KPI Subsídio Implícito VLE
-        const subsidyPerPax = Math.max(0, vle.totalPax - NET_REVENUE_PER_PAX);
-        const annualSubsidyMi = (subsidyPerPax * annualPax) / 1000000;
-        document.getElementById('kpiVleSubsidyPax').textContent = `${fmtBRL(subsidyPerPax)} / pax`;
-        document.getElementById('kpiVleSubsidyYear').textContent = `R$ ${fmtDec(annualSubsidyMi)} mi/ano`;
-
-        // Atualiza Tabela Financeira
-        ['vlt', 'vle', 'brt'].forEach(key => {
-          const capKey = key.charAt(0).toUpperCase() + key.slice(1);
-          const r = results[key];
-          document.getElementById(`tbl${capKey}OpexPax`).textContent = fmtBRL(r.opexPax);
-          document.getElementById(`tbl${capKey}CapexPax`).textContent = fmtBRL(r.capexPax);
-          document.getElementById(`tbl${capKey}TotalPax`).textContent = fmtBRL(r.totalPax);
-
-          const balEl = document.getElementById(`tbl${capKey}Balance`);
-          if (r.balancePax >= 0) {
-            balEl.textContent = `+${fmtBRL(r.balancePax)} / pax`;
-            balEl.className = 'py-2.5 px-3 font-bold text-emerald-600' + (key === 'vle' ? ' bg-blue-50/30' : '');
-          } else {
-            balEl.textContent = `-${fmtBRL(Math.abs(r.balancePax))} / pax`;
-            balEl.className = 'py-2.5 px-3 font-bold text-rose-600' + (key === 'vle' ? ' bg-blue-50/30' : '');
-          }
-        });
-
-        // Atualiza Gráfico de Custo por Passageiro
-        costChart.data.datasets[0].data = [
-          Number(results.vlt.opexPax.toFixed(2)),
-          Number(results.vle.opexPax.toFixed(2)),
-          Number(results.brt.opexPax.toFixed(2))
-        ];
-        costChart.data.datasets[1].data = [
-          Number(results.vlt.capexPax.toFixed(2)),
-          Number(results.vle.capexPax.toFixed(2)),
-          Number(results.brt.capexPax.toFixed(2))
-        ];
-        costChart.update();
-
-        // Atualiza Seção 5: Estresse no Pico
-        updateStressCard('Vle', results.vle);
-        updateStressCard('Vlt', results.vlt);
-        updateStressCard('Brt', results.brt);
-
-        document.getElementById('conclusionDemand').textContent = fmtInt(effectiveDemand);
-        document.getElementById('conclusionHeadway').textContent = fmtDec(headway);
-        document.getElementById('conclusionVleCost').textContent = fmtBRL(results.vle.totalPax);
-        document.getElementById('conclusionVltCost').textContent = fmtBRL(results.vlt.totalPax);
-        document.getElementById('conclusionBrtCost').textContent = fmtBRL(results.brt.totalPax);
-        document.getElementById('conclusionVleOccupancy').textContent = fmtPct(results.vle.currentOccupancy);
-        document.getElementById('conclusionVltOccupancy').textContent = fmtPct(results.vlt.currentOccupancy);
-        document.getElementById('conclusionBrtOccupancy').textContent = fmtPct(results.brt.currentOccupancy);
-
-        const capacityConclusion = document.getElementById('conclusionCapacityNote');
-        if (results.brt.currentOccupancy > 100) {
-          capacityConclusion.textContent = 'No intervalo atual, o BRT supera sua capacidade teórica neste modelo; reduza o intervalo entre veículos ou revise a oferta.';
-          capacityConclusion.className = 'text-xs text-rose-800 mt-3 leading-relaxed';
-        } else {
-          capacityConclusion.textContent = 'No intervalo atual, os três modos ficam dentro da capacidade teórica calculada; isso não substitui a validação operacional do corredor.';
-          capacityConclusion.className = 'text-xs text-emerald-800 mt-3 leading-relaxed';
         }
       }
+    }
+  });
 
-      function updateStressCard(prefix, r) {
-        const currPctEl = document.getElementById(`stress${prefix}CurrentPct`);
-        const currBarEl = document.getElementById(`stress${prefix}CurrentBar`);
-        const currCapEl = document.getElementById(`stress${prefix}CurrentCap`);
-        const currTagEl = document.getElementById(`stress${prefix}CurrentTag`);
+  const demandCtx = document.getElementById('demandChart').getContext('2d');
+  new Chart(demandCtx, {
+    type: 'bar',
+    data: {
+      labels: ['2029 (Início Pleno)', '2039 (+10 Anos)', '2044 (+15 Anos)'],
+      datasets: [
+        { label: 'Base Prefeitura (OD Atual)', data: [120000, 120000, 120000], backgroundColor: '#64748b' },
+        { label: 'Adensamento PIU Setor Central', data: [0, 31339, 51893], backgroundColor: '#10b981' },
+        { label: 'Integração Linha 19-Celeste / BRT', data: [0, 34650, 47250], backgroundColor: '#a855f7' },
+        { label: 'Racionalização SPTrans + Migração Auto', data: [0, 15400, 22000], backgroundColor: '#f59e0b' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: '#cbd5e1' }, grid: { color: '#334155' } },
+        y: { stacked: true, ticks: { color: '#cbd5e1', callback: v => (v/1000) + 'k' }, grid: { color: '#334155' } }
+      },
+      plugins: { legend: { labels: { color: '#f8fafc' } } }
+    }
+  });
 
-        const maxPctEl = document.getElementById(`stress${prefix}MaxPct`);
-        const maxBarEl = document.getElementById(`stress${prefix}MaxBar`);
+  function formatBRL(val) {
+    return 'R$ ' + val.toFixed(2).replace('.', ',');
+  }
 
-        currPctEl.textContent = fmtPct(r.currentOccupancy);
-        currCapEl.textContent = `${fmtInt(r.currentHourlyCap)} pax/h`;
-        currBarEl.style.width = `${Math.min(100, r.currentOccupancy)}%`;
-
-        if (r.currentOccupancy > 100) {
-          currPctEl.className = 'font-extrabold text-rose-700';
-          currBarEl.className = 'bg-rose-500 h-3 rounded-full transition-all duration-300';
-          currTagEl.className = 'font-semibold text-rose-700';
-          currTagEl.textContent = 'Saturado (Reduzir Headway)';
-        } else if (r.currentOccupancy > 85) {
-          currPctEl.className = 'font-extrabold text-amber-700';
-          currBarEl.className = 'bg-amber-500 h-3 rounded-full transition-all duration-300';
-          currTagEl.className = 'font-semibold text-amber-700';
-          currTagEl.textContent = 'Próximo ao Limite';
-        } else {
-          currPctEl.className = 'font-extrabold text-emerald-700';
-          currBarEl.className = 'bg-emerald-500 h-3 rounded-full transition-all duration-300';
-          currTagEl.className = 'font-semibold text-emerald-700';
-          currTagEl.textContent = 'Operação Normal';
-        }
-
-        maxPctEl.textContent = fmtPct(r.maxOccupancy);
-        maxBarEl.style.width = `${Math.min(100, r.maxOccupancy)}%`;
-        if (r.maxOccupancy > 100) {
-          maxPctEl.className = 'font-extrabold text-rose-700';
-          maxBarEl.className = 'bg-rose-600 h-2.5 rounded-full transition-all duration-300';
-        } else {
-          maxPctEl.className = 'font-extrabold text-slate-700';
-          maxBarEl.className = 'bg-blue-600 h-2.5 rounded-full transition-all duration-300';
-        }
-      }
-
-      // Eventos dos Presets Rápidos
-      function setActivePresetButton(activeDemand) {
-        presetButtons.forEach(btn => {
-          const btnDemand = parseFloat(btn.getAttribute('data-demand'));
-          if (btnDemand === activeDemand) {
-            btn.className = 'preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-blue-600 bg-blue-600 text-white shadow-sm transition cursor-pointer';
-          } else {
-            btn.className = 'preset-btn px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition cursor-pointer';
-          }
-        });
-      }
-
-      presetButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const val = parseFloat(btn.getAttribute('data-demand'));
-          demandSlider.value = val;
-          setActivePresetButton(val);
-          updateSimulation();
-        });
-      });
-
-      document.getElementById('apply15yProjectionBtn').addEventListener('click', () => {
-        demandSlider.value = 241143;
-        setActivePresetButton(241143);
-        updateSimulation();
-        document.getElementById('controles').scrollIntoView({ behavior: 'smooth' });
-      });
-
-      demandSlider.addEventListener('input', () => {
-        setActivePresetButton(parseFloat(demandSlider.value));
-        updateSimulation();
-      });
-      headwaySlider.addEventListener('input', updateSimulation);
-      freeIntegrationToggle.addEventListener('change', updateSimulation);
-
-      // Renderização inicial
-      updateSimulation();
+  function showTab(name) {
+    ['simulador', 'conclusoes'].forEach(id => {
+      const selected = id === name;
+      const tab = document.getElementById('tab-' + id);
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      document.getElementById('panel-' + id).hidden = !selected;
     });
-  </script>
+    if (name === 'simulador') requestAnimationFrame(() => map.invalidateSize());
+  }
+
+  document.querySelectorAll('[role="tab"]').forEach(tab => {
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 'simulador' : event.key === 'End' ? 'conclusoes' :
+        (tab.id === 'tab-simulador' ? 'conclusoes' : 'simulador');
+      showTab(next);
+      document.getElementById('tab-' + next).focus();
+    });
+  });
+
+  function renderConclusions(m) {
+    const modes = ['vlt', 'vle', 'brt'];
+    const cheapest = modes.reduce((best, key) => m[key].totalPax < m[best].totalPax ? key : best);
+    const items = [
+      `Demanda efetiva: ${m.demEfetiva.toLocaleString('pt-BR')} embarques/dia; pico estimado: ${Math.round(m.horaPico).toLocaleString('pt-BR')} embarques/h.`,
+      `Menor custo calculado: ${PARAMS[cheapest].nome}, com ${formatBRL(m[cheapest].totalPax)} por embarque, ${state.incluirJuros ? 'incluindo' : 'excluindo'} juros. Esse resultado isolado não determina a escolha do modal.`
+    ];
+    modes.forEach(key => {
+      const occupancy = m.horaPico / m[key].ofertaPico * 100;
+      const interval = key === 'brt' ? state.headway / PARAMS.brt.fatorFreq : state.headway;
+      const condition = occupancy > 100 ? 'demanda acima da oferta' : occupancy > 85 ? 'ocupação em alerta' : 'ocupação até 85% da oferta agregada';
+      items.push(`${PARAMS[key].nome}: custo de ${formatBRL(m[key].totalPax)}/embarque e ocupação de ${occupancy.toFixed(1).replace('.', ',')}% no pico (${condition}).${interval < PARAMS[key].headwayMin ? ' Intervalo abaixo do limite operacional adotado no modelo.' : ''}`);
+    });
+    items.push(`Depreciação anual: VLE ${formatBRL(m.vle.depAnual / 1e6)} milhões; VLT ${formatBRL(m.vlt.depAnual / 1e6)} milhões. Menor investimento inicial não implica menor depreciação anual.`);
+    document.getElementById('conclusion-list').replaceChildren(...items.map(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      return item;
+    }));
+  }
+
+  function computeMetrics() {
+    const demEfetiva = Math.round(state.baseDemanda * (state.integracaoGratuita ? 1.25 : 1.0));
+    const demAnual = demEfetiva * DIAS_ANO;
+    const horaPico = demEfetiva * FATOR_PICO;
+    const fatorHw = 6.0 / state.headway; // ajusta km rodados conforme headway
+
+    // VLT
+    const opexVltAno = PARAMS.vlt.opexBase * fatorHw * (state.vltBitrem ? 1.18 : 1.0);
+    const vltOpexPax = opexVltAno / demAnual;
+    const vltDepPax = PARAMS.vlt.depAnual / demAnual;
+    const vltJurosPax = state.incluirJuros ? (PARAMS.vlt.jurosAnual / demAnual) : 0;
+    const vltTotalPax = vltOpexPax + vltDepPax + vltJurosPax;
+    const capVltVeic = state.vltBitrem ? PARAMS.vlt.capBitrem : PARAMS.vlt.capSimples;
+    const ofertaVltPico = 4 * (60 / state.headway) * capVltVeic * GIRO_ANEL;
+
+    // VLE
+    const opexVleAno = PARAMS.vle.opexBase * fatorHw;
+    const vleOpexPax = opexVleAno / demAnual;
+    const vleDepPax = PARAMS.vle.depAnual / demAnual;
+    const vleJurosPax = state.incluirJuros ? (PARAMS.vle.jurosAnual / demAnual) : 0;
+    const vleTotalPax = vleOpexPax + vleDepPax + vleJurosPax;
+    const ofertaVlePico = 4 * (60 / state.headway) * PARAMS.vle.capVeic * GIRO_ANEL;
+
+    // BRT
+    const opexBrtAno = PARAMS.brt.opexBase * fatorHw;
+    const brtOpexPax = opexBrtAno / demAnual;
+    const brtDepPax = PARAMS.brt.depAnual / demAnual;
+    const brtJurosPax = state.incluirJuros ? (PARAMS.brt.jurosAnual / demAnual) : 0;
+    const brtTotalPax = brtOpexPax + brtDepPax + brtJurosPax;
+    const ofertaBrtPico = 4 * (60 / (state.headway / PARAMS.brt.fatorFreq)) * PARAMS.brt.capVeic * GIRO_ANEL;
+
+    return {
+      demEfetiva, demAnual, horaPico,
+      vlt: { opexPax: vltOpexPax, depPax: vltDepPax, jurosPax: vltJurosPax, totalPax: vltTotalPax, ofertaPico: ofertaVltPico, depAnual: PARAMS.vlt.depAnual },
+      vle: { opexPax: vleOpexPax, depPax: vleDepPax, jurosPax: vleJurosPax, totalPax: vleTotalPax, ofertaPico: ofertaVlePico, depAnual: PARAMS.vle.depAnual },
+      brt: { opexPax: brtOpexPax, depPax: brtDepPax, jurosPax: brtJurosPax, totalPax: brtTotalPax, ofertaPico: ofertaBrtPico, depAnual: PARAMS.brt.depAnual }
+    };
+  }
+
+  function render() {
+    const m = computeMetrics();
+    renderConclusions(m);
+    document.getElementById('lbl-demanda').textContent = m.demEfetiva.toLocaleString('pt-BR') + ' pax/dia';
+    document.getElementById('lbl-headway').textContent = state.headway.toFixed(1).replace('.', ',') + ' min';
+
+    document.getElementById('kpi-demanda').textContent = m.demEfetiva.toLocaleString('pt-BR');
+    document.getElementById('kpi-demanda-sub').textContent = (m.demAnual / 1e6).toFixed(2).replace('.', ',') + ' milhões de embarques/ano';
+
+    document.getElementById('kpi-pico').textContent = Math.round(m.horaPico).toLocaleString('pt-BR') + ' emb/h';
+    document.getElementById('kpi-pico-sub').textContent = 'Capacidade VLE atual: ' + Math.round(m.vle.ofertaPico).toLocaleString('pt-BR') + ' emb/h';
+
+    document.getElementById('kpi-vle-custo').textContent = formatBRL(m.vle.totalPax);
+    document.getElementById('kpi-vle-sub').textContent = `OPEX ${formatBRL(m.vle.opexPax)} + Dep. ${formatBRL(m.vle.depPax)} + Juros ${formatBRL(m.vle.jurosPax)}`;
+
+    document.getElementById('kpi-vlt-custo').textContent = formatBRL(m.vlt.totalPax);
+    document.getElementById('kpi-vlt-sub').textContent = `OPEX ${formatBRL(m.vlt.opexPax)} + Dep. ${formatBRL(m.vlt.depPax)} + Juros ${formatBRL(m.vlt.jurosPax)}`;
+
+    document.getElementById('kpi-brt-custo').textContent = formatBRL(m.brt.totalPax);
+    document.getElementById('kpi-brt-sub').textContent = `OPEX ${formatBRL(m.brt.opexPax)} + Dep. ${formatBRL(m.brt.depPax)} + Juros ${formatBRL(m.brt.jurosPax)}`;
+
+    // Atualiza gráfico de barras empilhadas
+    costChart.data.datasets[0].data = [m.vlt.opexPax, m.vle.opexPax, m.brt.opexPax];
+    costChart.data.datasets[1].data = [m.vlt.depPax, m.vle.depPax, m.brt.depPax];
+    costChart.data.datasets[2].data = [m.vlt.jurosPax, m.vle.jurosPax, m.brt.jurosPax];
+    costChart.update();
+
+    // Atualiza tabela de estresse
+    const rows = [
+      {
+        label: state.vltBitrem ? 'VLT (Bi-Trem 70m / 700 lug.)' : 'VLT (Simples 35m / 350 lug.)',
+        capex: 'R$ 4,10 bi',
+        dep: 'R$ 90,79 mi/ano',
+        oferta: m.vlt.ofertaPico,
+        hwOk: state.headway >= PARAMS.vlt.headwayMin
+      },
+      {
+        label: 'VLE (Bonde Digital / 250 lug.)',
+        capex: 'R$ 2,85 bi',
+        dep: 'R$ 123,02 mi/ano',
+        oferta: m.vle.ofertaPico,
+        hwOk: state.headway >= PARAMS.vle.headwayMin
+      },
+      {
+        label: 'BRT Elétrico (Articulado / 150 lug.)',
+        capex: 'R$ 783 mi',
+        dep: 'R$ 41,57 mi/ano',
+        oferta: m.brt.ofertaPico,
+        hwOk: state.headway / PARAMS.brt.fatorFreq >= PARAMS.brt.headwayMin
+      }
+    ];
+
+    const tbody = document.getElementById('stress-table-body');
+    tbody.innerHTML = rows.map(r => {
+      const ocup = (m.horaPico / r.oferta) * 100;
+      let pillClass = 'pill-ok';
+      let statusTxt = ocup.toFixed(1).replace('.', ',') + '% (Conforto)';
+      if (ocup > 100) {
+        pillClass = 'pill-danger';
+        statusTxt = ocup.toFixed(1).replace('.', ',') + '% (Saturado)';
+      } else if (ocup > 85) {
+        pillClass = 'pill-warn';
+        statusTxt = ocup.toFixed(1).replace('.', ',') + '% (Alerta)';
+      }
+      const hwWarn = !r.hwOk ? ' <span class="pill pill-danger">Conflito Semafórico</span>' : '';
+      return `<tr>
+        <td><strong>${r.label}</strong>${hwWarn}</td>
+        <td>${r.capex}</td>
+        <td>${r.dep}</td>
+        <td>${Math.round(r.oferta).toLocaleString('pt-BR')} emb/h</td>
+        <td><span class="pill ${pillClass}">${statusTxt}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setHorizon(year, dem) {
+    state.horizon = year;
+    state.baseDemanda = dem;
+    document.getElementById('slider-demanda').value = dem;
+    ['2029', '2039', '2044'].forEach(y => {
+      document.getElementById('btn-' + y).classList.toggle('active', Number(y) === year);
+    });
+    render();
+  }
+
+  function onSliderChange() {
+    state.baseDemanda = Number(document.getElementById('slider-demanda').value);
+    state.headway = Number(document.getElementById('slider-headway').value);
+    ['2029', '2039', '2044'].forEach(y => document.getElementById('btn-' + y).classList.remove('active'));
+    render();
+  }
+
+  function toggleIntegracao() {
+    state.integracaoGratuita = !state.integracaoGratuita;
+    document.getElementById('btn-integracao').classList.toggle('toggle-on', state.integracaoGratuita);
+    render();
+  }
+
+  function toggleBitrem() {
+    state.vltBitrem = !state.vltBitrem;
+    const btn = document.getElementById('btn-bitrem');
+    btn.classList.toggle('toggle-on', state.vltBitrem);
+    btn.textContent = state.vltBitrem ? 'VLT Bi-Trem no Pico (700 lug.): ON' : 'VLT Bi-Trem no Pico (700 lug.): OFF';
+    render();
+  }
+
+  function toggleJuros() {
+    state.incluirJuros = !state.incluirJuros;
+    const btn = document.getElementById('btn-juros');
+    btn.classList.toggle('toggle-on', state.incluirJuros);
+    btn.textContent = state.incluirJuros ? 'Incluir Juros Reais (6% a.a.): ON' : 'Incluir Juros Reais (6% a.a.): OFF';
+    render();
+  }
+
+  function exportCSV() {
+    const m = computeMetrics();
+    const lines = [
+      'Modal,Demanda_Dia,Headway_Min,VLT_BiTrem,OPEX_Pax_BRL,Depreciacao_Pax_BRL,Juros_Pax_BRL,Custo_Total_Pax_BRL,Oferta_Pico_Emb_H,Ocupacao_Pico_Pct',
+      `VLT,${m.demEfetiva},${state.headway},${state.vltBitrem},${m.vlt.opexPax.toFixed(2)},${m.vlt.depPax.toFixed(2)},${m.vlt.jurosPax.toFixed(2)},${m.vlt.totalPax.toFixed(2)},${Math.round(m.vlt.ofertaPico)},${((m.horaPico/m.vlt.ofertaPico)*100).toFixed(1)}`,
+      `VLE,${m.demEfetiva},${state.headway},false,${m.vle.opexPax.toFixed(2)},${m.vle.depPax.toFixed(2)},${m.vle.jurosPax.toFixed(2)},${m.vle.totalPax.toFixed(2)},${Math.round(m.vle.ofertaPico)},${((m.horaPico/m.vle.ofertaPico)*100).toFixed(1)}`,
+      `BRT_Eletrico,${m.demEfetiva},${state.headway},false,${m.brt.opexPax.toFixed(2)},${m.brt.depPax.toFixed(2)},${m.brt.jurosPax.toFixed(2)},${m.brt.totalPax.toFixed(2)},${Math.round(m.brt.ofertaPico)},${((m.horaPico/m.brt.ofertaPico)*100).toFixed(1)}`
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `simulacao_bonde_sp_${m.demEfetiva}pax.csv`;
+    a.click();
+  }
+
+  render();
+</script>
 </body>
 </html>
